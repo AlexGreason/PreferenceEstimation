@@ -1,6 +1,8 @@
+from copy import copy
+
 import numpy as np
 import numpy.random as rand
-import copy.copy as copy
+
 
 class EvoAlg:
 
@@ -20,14 +22,17 @@ class EvoAlg:
 
     def mutate(self, creature):
         for i in range(len(creature)):
-            if rand.random() < self.mutationparams[1]:
-                creature[i] += rand.normal(0, self.mutationparams[2], 1)
-            if rand.random < self.mutationparams[3]:
-                creature[i] = rand.normal(0, self.mutationparams[4])
+            if rand.random() < self.mutationparams[0]:
+                if rand.random() < self.mutationparams[1]:
+                    creature[i] += rand.normal(0, self.mutationparams[2], 1)
+                if rand.random() < self.mutationparams[3]:
+                    creature[i] = rand.normal(0, self.mutationparams[4])
+        return creature
 
     def random(self, creature):
         for i in range(len(creature)):
             creature[i] = rand.normal(0, self.mutationparams[4])
+        return creature
 
     def crossover(self, creature1, creature2):
         swap = rand.randint(0, len(creature1))
@@ -38,16 +43,36 @@ class EvoAlg:
         return result
 
 
+    def select(self, pop, fitnesses):
+        creatures = list(zip(pop, fitnesses))
+        select = int(len(pop)/self.mutationparams[5])
+        expfit = np.array([np.log(np.exp(x[1]) + 1) for x in creatures])
+        normfit = expfit/(np.sum(expfit))
+        selected = np.random.choice(np.arange(len(creatures)), size=select, replace=False, p=normfit)
+        selected = [creatures[i] for i in selected]
+        return selected
+
     def breed(self, fitnesses):
         creatures = list(zip(self.pop, fitnesses))
-        creatures.sort(key=lambda x: x[1])
-        select = int(len(self.pop)/self.mutationparams[5])
-        expfit = np.array([np.exp(x[1]) for x in creatures])
-        normfit = expfit/(np.sum(expfit) + 0.00001)
-        selected = np.random.choice(creatures, size=select, replace=False, p=normfit)
-        print([x[1] for x in selected])
+        creatures.sort(key=lambda x: x[1], reverse=True)
+        elite = creatures[:self.mutationparams[6]]
+        nonelite = creatures[self.mutationparams[6]:]
+        nonelitefit = [x[1] for x in nonelite]
+        nonelite = [x[0] for x in nonelite]
+        selected = self.select(nonelite, nonelitefit)
+        selected.sort(key=lambda x: x[1], reverse=True)
+        genomes = [x[0] for x in selected]
+        elitegenomes = [x[0] for x in elite]
+        mutated = [self.mutate(x) for x in genomes]
+        newpop = elitegenomes + mutated
+        print(newpop)
+        return(newpop)
+
+
+
 
 if __name__ == "__main__":
-    creatures = [[x] for x in range(10)]
-    fitnesses = [x + .5 for x in range(10)]
-    evoalg = EvoAlg(len(creatures), creatures, [])
+    creatures = [[x, x+1] for x in range(100)]
+    fitnesses = [x + .5 for x in range(100)]
+    evoalg = EvoAlg(len(creatures), creatures, [1, .5, 1, 0, 1, 10, 5])
+    evoalg.breed(fitnesses)
